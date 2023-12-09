@@ -39,7 +39,6 @@ public class AuthorsController(MovieDbContext context) : ODataController
         };
  
         context.Set<AuthorEntity>().Add(entity);
-
         context.SaveChanges();
 
         return Ok(entity);

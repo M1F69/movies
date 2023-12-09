@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Net;
+using System.Net.Mime;
 using System.Text;
 using Films.Contracts;
 using Films.Data;
@@ -19,7 +20,6 @@ namespace Films.Controllers;
 
 public class MoviesController(MovieDbContext context) : ODataController
 {
-    private const int FileSizeLimit = 10485760;
 
     [EnableQuery]
     public IActionResult Get(ODataQueryOptions<MovieEntity> options)
@@ -37,7 +37,7 @@ public class MoviesController(MovieDbContext context) : ODataController
         return Ok(query!.FirstOrDefault(x => x.Id == key));
     }
 
-    public IActionResult Post([FromBody] CreateMovieContract payload, [FromForm] IEnumerable<IFormFile> Files)
+    public async Task<IActionResult> Post([FromForm] CreateMovieWithFileContract payload)
     {
         var entity = new MovieEntity
         {
@@ -47,29 +47,51 @@ public class MoviesController(MovieDbContext context) : ODataController
             Type = payload.Type
         };
 
-        // context.Set<MovieEntity>().Add(entity);
+        context.Set<MovieEntity>().Add(entity);
+        await context.SaveChangesAsync();
 
-        // context.SaveChanges();
+        if (!payload.Files.Any()) return Ok(entity);
 
-        return Ok(entity);
-    }   
-    
-    public IActionResult Post([FromForm] CreateMovieWithFileContract payload)
-    {
-        var entity = new MovieEntity
+        var blob = payload.Files.First();
+
+        await using var stream = new MemoryStream();
+        await blob.CopyToAsync(stream);
+
+        await context.Database.BeginTransactionAsync();
+        
+        var createCommand = context.Database.GetDbConnection().CreateCommand();
+        createCommand.CommandText = "SELECT lo_creat(-1) AS blob_id";
+        
+        var blobId = Convert.ToInt64(await createCommand.ExecuteScalarAsync());
+        
+        var putCommand = context.Database.GetDbConnection().CreateCommand();
+        putCommand.CommandText = "SELECT lo_put(@blobId, @offset, @buffer)";
+        putCommand.Parameters.Add(new NpgsqlParameter("@blobId", DbType.Int64) { Value = blobId });
+        putCommand.Parameters.Add(new NpgsqlParameter("@offset", DbType.Int64) { Value = 0 });
+        putCommand.Parameters.Add(new NpgsqlParameter("@buffer", DbType.Binary) { Value = stream.ToArray() });
+
+        await putCommand.ExecuteNonQueryAsync();
+        
+        var blobEntity = new BlobEntity
         {
-            Name = payload.Name,
-            Description = payload.Description,
-            Year = payload.Year,
-            Type = payload.Type
+            LoId = blobId,
+            Name = blob.Name,
+            Size = blob.Length,
+            MimeType = blob.ContentType,
+            CreatedAt = DateTime.Now,
         };
+        
+        context.Set<BlobEntity>().Add(blobEntity);
+        await context.SaveChangesAsync();
 
-        // context.Set<MovieEntity>().Add(entity);
-
-        // context.SaveChanges();
+        entity.ImageId = blobEntity.Id;
+        context.Entry(entity).State = EntityState.Modified;
+        await context.SaveChangesAsync();
+        
+        await context.Database.CommitTransactionAsync();
 
         return Ok(entity);
-    }   
+    }
 
     public IActionResult Patch([FromODataUri] Guid key, [FromBody] Delta<MovieEntity> delta)
     {
@@ -113,72 +135,64 @@ public class MoviesController(MovieDbContext context) : ODataController
             return NotFound();
         }
 
-       
+
         return BadRequest();
     }
-
-    private static Encoding GetEncoding(MultipartSection section)
+    
+    [HttpGet("Movies/{key}/download")]
+    [HttpGet("Movies({key})/download")]
+    public async Task<IActionResult> Download([FromODataUri] Guid key)
     {
-        var hasMediaTypeHeader = MediaTypeHeaderValue.TryParse(section.ContentType, out var mediaType);
-        if (!hasMediaTypeHeader || Encoding.UTF8.Equals(mediaType.Encoding))
+        var entity = await context.Set<MovieEntity>().Include(p => p.Image).FirstOrDefaultAsync(p => p.Id.Equals(key));
+        if (entity is null)
         {
-            return Encoding.UTF8;
+            return NotFound();
         }
 
-        return mediaType.Encoding;
+        var blob = entity.Image;
+        
+        if (blob is null)
+        {
+            return NotFound();
+        }
+        
+        const int size = 65536;
+        
+        var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT lo_get(@blobId, @offset, @buffer)";
+
+        await command.Connection.OpenAsync();
+        
+        var cd = new ContentDisposition
+        {
+            FileName = blob.Name,
+            Size = blob.Size,
+            Inline = false
+        };
+
+        Response.Headers.Add("Content-Disposition", cd.ToString());
+        Response.Headers.Add("Content-Description", "File Transfer");
+        Response.Headers.Add("Content-Type", blob.MimeType);
+
+        var stream = Response.BodyWriter.AsStream(true);
+        var offset = 0;
+
+        while (offset < blob.Size)
+        {
+            command.Parameters.Clear();
+            command.Parameters.Add(new NpgsqlParameter("@blobId", DbType.Int64) { Value = blob.LoId });
+            command.Parameters.Add(new NpgsqlParameter("@offset", DbType.Int64) { Value = offset });
+            command.Parameters.Add(new NpgsqlParameter("@buffer", DbType.Int32) { Value = size });
+
+            var buffer = (await command.ExecuteScalarAsync()) as byte[];
+
+            await stream.WriteAsync(buffer, 0, buffer.Length);
+            offset += buffer.Length;
+        }
+        
+        stream.Close();
+
+        return new EmptyResult();
     }
 
-    private async Task<long> ProcessStreamedFile(MultipartSection section,
-        ContentDispositionHeaderValue contentDisposition)
-    {
-        long blobId = 0;
-
-        try
-        {
-            var createCommand = context.Database.GetDbConnection().CreateCommand();
-            createCommand.CommandText = "SELECT lo_creat(-1) AS blob_id";
-            //createCommand.Transaction = m_context.Database.CurrentTransaction.GetDbTransaction();
-
-            blobId = Convert.ToInt64(await createCommand.ExecuteScalarAsync());
-
-
-            await using var memoryStream = new MemoryStream();
-            await section.Body.CopyToAsync(memoryStream);
-
-            // Check if the file is empty or exceeds the size limit.
-            if (memoryStream.Length == 0)
-            {
-                ModelState.AddModelError("File", "The file is empty.");
-            }
-            else if (memoryStream.Length > FileSizeLimit)
-            {
-                var megabyteSizeLimit = FileSizeLimit / 1048576;
-
-                ModelState.AddModelError("File", $"The file exceeds {megabyteSizeLimit:N1} MB.");
-            }
-            else if (!FileHelper.FileHelpers.IsValidFileExtensionAndSignature(contentDisposition.FileName.Value,
-                         memoryStream, new[] {".gif", ".png", ".jpeg", ".jpg"}))
-            {
-                ModelState.AddModelError("File",
-                    "The file type isn't permitted or the file's signature doesn't match the file's extension.");
-            }
-
-            var putCommand = context.Database.GetDbConnection().CreateCommand();
-            putCommand.CommandText = "SELECT lo_put(@blobId, @offset, @buffer)";
-            putCommand.Parameters.Add(new NpgsqlParameter("@blobId", DbType.Int64) {Value = blobId});
-            putCommand.Parameters.Add(new NpgsqlParameter("@offset", DbType.Int64) {Value = 0});
-            putCommand.Parameters.Add(new NpgsqlParameter("@buffer", DbType.Binary) {Value = memoryStream.ToArray()});
-            //putCommand.Transaction = m_context.Database.CurrentTransaction.GetDbTransaction();
-
-            await putCommand.ExecuteNonQueryAsync();
-        }
-        catch (Exception ex)
-        {
-            ModelState.AddModelError("File",
-                $"The upload failed. Please contact the Help Desk for support. Error: {ex.HResult}");
-            // Log the exception
-        }
-
-        return blobId;
-    }
 }
