@@ -28,7 +28,7 @@ public class AuthorsController(MovieDbContext context) : ODataController
         return Ok(query!.FirstOrDefault(x => x.Id == key));
     }
 
-    public IActionResult Post([FromODataUri] Guid key, [FromBody] CreateAuthorContract payload)
+    public IActionResult Post([FromBody] CreateAuthorContract payload)
     {
         var entity = new AuthorEntity
         {
