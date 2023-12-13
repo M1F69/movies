@@ -12,5 +12,5 @@ public record CreateMovieWithFileContract: CreateMovieContract
 
     public MovieType Type { get; set; } = MovieType.Default;
 
-    public IEnumerable<IFormFile> Files { get; set; }
+    public IEnumerable<IFormFile> Files { get; set; } = new List<IFormFile>();
 }

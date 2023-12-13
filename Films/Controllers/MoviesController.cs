@@ -22,11 +22,11 @@ public class MoviesController(MovieDbContext context) : ODataController
 {
 
     [EnableQuery]
-    public IActionResult Get(ODataQueryOptions<MovieEntity> options)
+    public IQueryable<MovieEntity> Get(ODataQueryOptions<MovieEntity> options)
     {
         var query = options.ApplyTo(context.Set<MovieEntity>()) as IQueryable<MovieEntity>;
 
-        return Ok(query!.ToList());
+        return context.Set<MovieEntity>();
     }
 
     [EnableQuery]
@@ -75,7 +75,7 @@ public class MoviesController(MovieDbContext context) : ODataController
         var blobEntity = new BlobEntity
         {
             LoId = blobId,
-            Name = blob.Name,
+            Name = blob.FileName,
             Size = blob.Length,
             MimeType = blob.ContentType,
             CreatedAt = DateTime.Now,
