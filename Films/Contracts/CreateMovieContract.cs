@@ -11,4 +11,6 @@ public record CreateMovieContract
     public ushort Year { get; set; } = 0;
 
     public MovieType Type { get; set; } = MovieType.Default;
+    
+    public MovieGenreType Genre { get; set; } = MovieGenreType.ActionMovie;
 }
