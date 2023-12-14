@@ -22,6 +22,8 @@ public class MovieEntity
 
     public MovieType Type { get; set; } = MovieType.Default;
     
+    public MovieGenreType Genre { get; set; } = MovieGenreType.ActionMovie;
+    
     public virtual AuthorEntity? Author { get; set; }
     
     public virtual BlobEntity? Image { get; set; }
@@ -44,6 +46,7 @@ public class MovieEntityConfiguration: IEntityTypeConfiguration<MovieEntity>
         builder.Property(p => p.Description).HasColumnName("movie_description");
         builder.Property(p => p.Year).HasColumnName("movie_year");
         builder.Property(p => p.Type).HasColumnName("movie_type");
+        builder.Property(p => p.Type).HasColumnName("movie_genre");
         
         builder
             .HasOne(p => p.Author)

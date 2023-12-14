@@ -44,7 +44,8 @@ public class MoviesController(MovieDbContext context) : ODataController
             Name = payload.Name,
             Description = payload.Description,
             Year = payload.Year,
-            Type = payload.Type
+            Type = payload.Type,
+            Genre = payload.Genre,
         };
 
         context.Set<MovieEntity>().Add(entity);
