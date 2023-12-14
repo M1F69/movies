@@ -15,6 +15,7 @@ builder
 var modelBuilder = new ODataConventionModelBuilder();
 modelBuilder.EntitySet<MovieEntity>("Movies");
 modelBuilder.EntitySet<AuthorEntity>("Authors");
+modelBuilder.EntitySet<UserEntity>("Users");
 modelBuilder.EnableLowerCamelCase();
 
 builder

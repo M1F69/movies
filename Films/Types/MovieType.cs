@@ -4,5 +4,6 @@ public enum MovieType
 {
     Default,
     Cartoon,
-    Serial
+    Serial,
+    Anime
 }

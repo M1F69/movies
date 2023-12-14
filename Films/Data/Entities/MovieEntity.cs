@@ -17,6 +17,8 @@ public class MovieEntity
     public string Name { get; set; } = "";
     
     public string Description { get; set; } = "";
+    
+    public bool Viewed { get; set; } = false;
 
     public ushort Year { get; set; } = 0;
 
@@ -44,6 +46,7 @@ public class MovieEntityConfiguration: IEntityTypeConfiguration<MovieEntity>
         builder.Property(p => p.ImageId).HasColumnName("movie_image_id");
         builder.Property(p => p.Name).HasColumnName("movie_name");
         builder.Property(p => p.Description).HasColumnName("movie_description");
+        builder.Property(p => p.Viewed).HasColumnName("movie_viewed");
         builder.Property(p => p.Year).HasColumnName("movie_year");
         builder.Property(p => p.Type).HasColumnName("movie_type");
         builder.Property(p => p.Type).HasColumnName("movie_genre");
