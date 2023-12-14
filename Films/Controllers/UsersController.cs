@@ -20,6 +20,13 @@ public class UsersController(MovieDbContext context) : ODataController
         return Ok(query!.ToList());
     }
     
+    [EnableQuery]
+    public IActionResult Get(ODataQueryOptions<UserEntity> options, [FromODataUri] Guid key)
+    {
+        var query = options.ApplyTo(context.Set<UserEntity>()) as IQueryable<UserEntity>;
+
+        return Ok(query!.FirstOrDefault(x => x.Id == key));
+    }
     
     public IActionResult Post([FromBody] CreateUserContract payload)
     {
@@ -39,10 +46,27 @@ public class UsersController(MovieDbContext context) : ODataController
         return Ok(entity);
     }
     
-    //TODO: не уверена на счет того что в (↓скобках↓)  удалять по никнейму
-    public IActionResult Delete([FromODataUri] string key)
+    public IActionResult Patch([FromODataUri] Guid key, [FromBody] Delta<UserEntity> delta)
     {
-        var entity = context.Set<UserEntity>().FirstOrDefault(x => x.NickName == key);
+        var entity = context.Set<UserEntity>().FirstOrDefault(x => x.Id == key);
+
+        if (entity is null)
+        {
+            return NotFound();
+        }
+        
+        delta.Patch(entity);
+
+        context.Entry(entity).State = EntityState.Modified;
+        context.SaveChanges();
+        
+        return Ok(entity);
+    }
+    
+    
+    public IActionResult Delete([FromODataUri] Guid key)
+    {
+        var entity = context.Set<UserEntity>().FirstOrDefault(x => x.Id == key);
 
         if (entity is null)
         {

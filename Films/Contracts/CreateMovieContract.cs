@@ -12,5 +12,7 @@ public record CreateMovieContract
 
     public MovieType Type { get; set; } = MovieType.Default;
     
+    public bool Viewed { get; set; } = false;
+    
     public MovieGenreType Genre { get; set; } = MovieGenreType.ActionMovie;
 }
