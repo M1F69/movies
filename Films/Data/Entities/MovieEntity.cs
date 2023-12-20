@@ -49,7 +49,7 @@ public class MovieEntityConfiguration: IEntityTypeConfiguration<MovieEntity>
         builder.Property(p => p.Viewed).HasColumnName("movie_viewed");
         builder.Property(p => p.Year).HasColumnName("movie_year");
         builder.Property(p => p.Type).HasColumnName("movie_type");
-        builder.Property(p => p.Type).HasColumnName("movie_genre");
+        builder.Property(p => p.Genre).HasColumnName("movie_genre");
         
         builder
             .HasOne(p => p.Author)
