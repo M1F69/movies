@@ -62,7 +62,7 @@ namespace Films.Migrations
                         .HasColumnName("blob_id");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("blob_created_at");
 
                     b.Property<uint>("LoId")
@@ -104,6 +104,11 @@ namespace Films.Migrations
                         .HasColumnType("text")
                         .HasColumnName("movie_description");
 
+                    b.Property<int[]>("Genre")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("movie_genre");
+
                     b.Property<Guid?>("ImageId")
                         .HasColumnType("uuid")
                         .HasColumnName("movie_image_id");
@@ -117,6 +122,10 @@ namespace Films.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("movie_type");
 
+                    b.Property<bool>("Viewed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("movie_viewed");
+
                     b.Property<int>("Year")
                         .HasColumnType("integer")
                         .HasColumnName("movie_year");
@@ -129,6 +138,45 @@ namespace Films.Migrations
                         .IsUnique();
 
                     b.ToTable("movies", "movie");
+                });
+
+            modelBuilder.Entity("Films.Data.Entities.UserEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_fullname");
+
+                    b.Property<string>("Mail")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_mail");
+
+                    b.Property<string>("NickName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_nickname");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_password");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Mail")
+                        .IsUnique();
+
+                    b.HasIndex("NickName")
+                        .IsUnique();
+
+                    b.HasIndex("NickName", "Mail");
+
+                    b.ToTable("users", "movie");
                 });
 
             modelBuilder.Entity("Films.Data.Entities.MovieEntity", b =>
