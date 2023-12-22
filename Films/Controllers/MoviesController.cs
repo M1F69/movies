@@ -96,7 +96,7 @@ public class MoviesController(MovieDbContext context) : ODataController
         return Ok(entity);
     }
 
-    public IActionResult Patch([FromODataUri] Guid key, [FromBody] Delta<MovieEntity> delta)
+    public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromForm] CreateMovieWithFileContract delta)
     {
         var entity = context.Set<MovieEntity>().FirstOrDefault(p => p.Id.Equals(key));
 
@@ -105,10 +105,55 @@ public class MoviesController(MovieDbContext context) : ODataController
             return NotFound();
         }
 
-        delta.Patch(entity);
-
+        entity.Name = delta.Name;
+        entity.Description = delta.Description;
+        entity.Year = delta.Year;
+        entity.Genre = delta.Genre;
+        entity.Type = delta.Type;
+        entity.TrailerHref = delta.TrailerHref;
+        
         context.Entry(entity).State = EntityState.Modified;
-        context.SaveChanges();
+        await context.SaveChangesAsync();
+
+        if (!delta.Files.Any()) return Ok(entity);
+
+        var blob = delta.Files.First();
+
+        await using var stream = new MemoryStream();
+        await blob.CopyToAsync(stream);
+
+        await context.Database.BeginTransactionAsync();
+        
+        var createCommand = context.Database.GetDbConnection().CreateCommand();
+        createCommand.CommandText = "SELECT lo_creat(-1) AS blob_id";
+        
+        var blobId = Convert.ToInt64(await createCommand.ExecuteScalarAsync());
+        
+        var putCommand = context.Database.GetDbConnection().CreateCommand();
+        putCommand.CommandText = "SELECT lo_put(@blobId, @offset, @buffer)";
+        putCommand.Parameters.Add(new NpgsqlParameter("@blobId", DbType.Int64) { Value = blobId });
+        putCommand.Parameters.Add(new NpgsqlParameter("@offset", DbType.Int64) { Value = 0 });
+        putCommand.Parameters.Add(new NpgsqlParameter("@buffer", DbType.Binary) { Value = stream.ToArray() });
+
+        await putCommand.ExecuteNonQueryAsync();
+        
+        var blobEntity = new BlobEntity
+        {
+            LoId = blobId,
+            Name = blob.FileName,
+            Size = blob.Length,
+            MimeType = blob.ContentType,
+            CreatedAt = DateTime.Now,
+        };
+        
+        context.Set<BlobEntity>().Add(blobEntity);
+        await context.SaveChangesAsync();
+
+        entity.ImageId = blobEntity.Id;
+        context.Entry(entity).State = EntityState.Modified;
+        await context.SaveChangesAsync();
+        
+        await context.Database.CommitTransactionAsync();
 
         return Ok(entity);
     }
