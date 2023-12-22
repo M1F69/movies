@@ -41,14 +41,14 @@ app.MapGet("/reload", () => {
 
 app.MapPost("/sign-in", (SignInContract payload, MovieDbContext dbContext) =>
 {
-    var user = dbContext.Set<UserEntity>().FirstOrDefault(x => x.Password == payload.Password && x.NickName == payload.Username);
+    var user = dbContext.Set<UserEntity>().Include(x => x.Viewed).FirstOrDefault(x => x.Password == payload.Password && x.NickName == payload.Username);
 
     return user is null ? Results.NotFound() : Results.Ok(user);
 });
 
 app.MapPost("/viewed", (ViewedContract payload, MovieDbContext dbContext) =>
 {
-    var user = dbContext.Set<UserEntity>().First(x => x.Id == payload.UserId);
+    var user = dbContext.Set<UserEntity>().Include(x => x.Viewed).First(x => x.Id == payload.UserId);
     var movie = dbContext.Set<MovieEntity>().First(x => x.Id == payload.MovieId);
     
     user.Viewed.Add(movie);
