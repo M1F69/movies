@@ -13,6 +13,8 @@ public class UserEntity
     public string Password { get; set; } = "";
 
     public string Mail { get; set; } = "";
+    
+    public IEnumerable<MovieEntity> Viewed { get; set; }
 }
 
 public class UserEntityConfiguration : IEntityTypeConfiguration<UserEntity>
@@ -38,5 +40,11 @@ public class UserEntityConfiguration : IEntityTypeConfiguration<UserEntity>
         builder.Property(p => p.FullName).HasColumnName("user_fullname");
         builder.Property(p => p.Password).HasColumnName("user_password");
         builder.Property(p => p.Mail).HasColumnName("user_mail");
+
+
+
+        builder
+            .HasMany(p => p.Viewed)
+            .WithMany();
     }
 }
