@@ -118,6 +118,11 @@ namespace Films.Migrations
                         .HasColumnType("text")
                         .HasColumnName("movie_name");
 
+                    b.Property<string>("TrailerHref")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("trailer_href");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer")
                         .HasColumnName("movie_type");
@@ -179,6 +184,23 @@ namespace Films.Migrations
                     b.ToTable("users", "movie");
                 });
 
+            modelBuilder.Entity("Films.Data.Entities.ViewedEntity", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("viewed_user_id");
+
+                    b.Property<Guid>("MovieId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("viewed_movie_id");
+
+                    b.HasKey("UserId", "MovieId");
+
+                    b.HasIndex("MovieId");
+
+                    b.ToTable("viewed", "movie");
+                });
+
             modelBuilder.Entity("Films.Data.Entities.MovieEntity", b =>
                 {
                     b.HasOne("Films.Data.Entities.AuthorEntity", "Author")
@@ -192,6 +214,21 @@ namespace Films.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("Films.Data.Entities.ViewedEntity", b =>
+                {
+                    b.HasOne("Films.Data.Entities.MovieEntity", null)
+                        .WithMany()
+                        .HasForeignKey("MovieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Films.Data.Entities.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Films.Data.Entities.AuthorEntity", b =>

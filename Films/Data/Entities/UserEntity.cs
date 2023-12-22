@@ -14,7 +14,7 @@ public class UserEntity
 
     public string Mail { get; set; } = "";
     
-    public IEnumerable<MovieEntity> Viewed { get; set; }
+    public ICollection<MovieEntity> Viewed { get; set; }
 }
 
 public class UserEntityConfiguration : IEntityTypeConfiguration<UserEntity>
@@ -40,11 +40,12 @@ public class UserEntityConfiguration : IEntityTypeConfiguration<UserEntity>
         builder.Property(p => p.FullName).HasColumnName("user_fullname");
         builder.Property(p => p.Password).HasColumnName("user_password");
         builder.Property(p => p.Mail).HasColumnName("user_mail");
-
-
-
+        
         builder
-            .HasMany(p => p.Viewed)
-            .WithMany();
+            .HasMany(e => e.Viewed)
+            .WithMany()
+            .UsingEntity<ViewedEntity>(
+                l => l.HasOne<MovieEntity>().WithMany().HasForeignKey(e => e.MovieId),
+                r => r.HasOne<UserEntity>().WithMany().HasForeignKey(e => e.UserId));
     }
 }
