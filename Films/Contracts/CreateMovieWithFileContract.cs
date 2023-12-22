@@ -16,6 +16,8 @@ public record CreateMovieWithFileContract
     public bool Viewed { get; set; }
     
     public MovieGenreType[] Genre { get; set; }
+    
+    public string TrailerHref { get; set; }
 
     public IEnumerable<IFormFile> Files { get; set; } = new List<IFormFile>();
 }

@@ -25,6 +25,9 @@ public class MovieEntity
     public MovieType Type { get; set; } = MovieType.Default;
 
     public MovieGenreType[] Genre { get; set; }
+
+    public string TrailerHref { get; set; } = "";
+
     
     public virtual AuthorEntity? Author { get; set; }
     
@@ -50,6 +53,7 @@ public class MovieEntityConfiguration: IEntityTypeConfiguration<MovieEntity>
         builder.Property(p => p.Year).HasColumnName("movie_year");
         builder.Property(p => p.Type).HasColumnName("movie_type");
         builder.Property(p => p.Genre).HasColumnName("movie_genre");
+        builder.Property(p => p.TrailerHref).HasColumnName("trailer_href");
         
         builder
             .HasOne(p => p.Author)
