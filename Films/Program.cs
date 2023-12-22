@@ -58,5 +58,15 @@ app.MapPost("/viewed", (ViewedContract payload, MovieDbContext dbContext) =>
     return user;
 });
 
+app.MapPost("/unviewed", (ViewedContract payload, MovieDbContext dbContext) =>
+{
+    dbContext.Set<ViewedEntity>().Remove(
+        dbContext.Set<ViewedEntity>().First(x => x.UserId == payload.UserId && x.MovieId == payload.MovieId)
+    );
+    dbContext.SaveChanges();
+    return dbContext.Set<UserEntity>().Include(x => x.Viewed).First(x => x.Id == payload.UserId);
+});
+
+
 
 app.Run();
