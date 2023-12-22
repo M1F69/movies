@@ -24,7 +24,7 @@ public class MovieEntity
 
     public MovieType Type { get; set; } = MovieType.Default;
 
-    public IEnumerable<MovieGenreType> Genre { get; set; } = new List<MovieGenreType>();
+    public MovieGenreType[] Genre { get; set; }
     
     public virtual AuthorEntity? Author { get; set; }
     

@@ -14,5 +14,5 @@ public record CreateMovieContract
     
     public bool Viewed { get; set; } = false;
     
-    public IEnumerable<MovieGenreType> Genre { get; set; } = new List<MovieGenreType>();
+    public MovieGenreType[] Genre { get; set; }
 }

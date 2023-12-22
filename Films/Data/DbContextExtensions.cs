@@ -10,8 +10,6 @@ public static class DbContextExtensions
 
         var context = scope.ServiceProvider.GetRequiredService<MovieDbContext>();
         
-        context.Database.Migrate();
-        
         return app;
     }
 

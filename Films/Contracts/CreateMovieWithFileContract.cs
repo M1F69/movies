@@ -2,15 +2,20 @@
 
 namespace Films.Contracts;
 
-public record CreateMovieWithFileContract: CreateMovieContract
+public record CreateMovieWithFileContract
 {
-    public string Name { get; set; } = "";
     
-    public string Description { get; set; } = "";
+    public string Name { get; set; }
+    
+    public string Description { get; set; }
 
-    public ushort Year { get; set; } = 0;
+    public ushort Year { get; set; }
 
-    public MovieType Type { get; set; } = MovieType.Default;
+    public MovieType Type { get; set; }
+    
+    public bool Viewed { get; set; }
+    
+    public MovieGenreType[] Genre { get; set; }
 
     public IEnumerable<IFormFile> Files { get; set; } = new List<IFormFile>();
 }
